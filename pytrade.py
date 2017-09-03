@@ -1,4 +1,5 @@
-import requests
+from http import server
+
 import requests_oauthlib
 
 import config
@@ -12,6 +13,8 @@ class Authorization:
         self.oauth_session = requests_oauthlib.OAuth1Session(config.oauth_consumer_key, config.consumer_secret,
                                                              callback_uri='oob')
         self.oauth_url = base_url + "/oauth"
+        print(self.get_authorization_url())
+        self.run_authorization_server()
 
     def get_request_token(self):
         request_token_path = '/request_token'
@@ -29,20 +32,28 @@ class Authorization:
         url = self.oauth_url + access_token_path
         return self.oauth_session.fetch_access_token(url, verifier=verification_code)
 
+    def run_authorization_server(self):
+        host_name = 'localhost'
+        host_port = 80
+        with server.HTTPServer((host_name, host_port), AuthenticationCallbackHandler) as httpd:
+            httpd.serve_forever()
 
-def get_quote(symbol):
+
+class AuthenticationCallbackHandler(server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        print('do_GET()')
+        self.send_response(200)
+
+
+def get_quote(symbol, auth):
     path = 'market/sandbox/rest/quote/'
-    url = sandbox_url + path + symbol + '.json'
-    response = requests.get(url)
+    url = base_url + path + symbol + '.json'
+    response = auth.oauth_session.get(url)
     return response
 
 
 def main():
     auth = Authorization()
-    print(auth.get_authorization_url())
-    verification_code = input("Paste verification code here: ")
-    access_token = auth.get_access_token(verification_code)
-    print('access token: ', access_token)
 
 
 if __name__ == '__main__':

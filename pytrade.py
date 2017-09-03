@@ -1,4 +1,5 @@
 from http import server
+from urllib.parse import urlparse, parse_qs
 
 import requests_oauthlib
 
@@ -41,11 +42,20 @@ class Authorization:
 
 class AuthenticationCallbackHandler(server.BaseHTTPRequestHandler):
     def do_GET(self):
-        print('do_GET()')
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
-        self.wfile.write(b'<html><title>Authorized</title><body><h1 align="center">Authorized</h1></body></html>')
+        parsed_path = urlparse(self.path)
+        params = parse_qs(parsed_path.query)
+
+        if 'oauth_verifier' in params:
+            oauth_verifier = params['oauth_verifier'][0]
+
+            self.log_message('Parsed Path: %s', str(parsed_path))
+            self.log_message('Parameters: %s', str(params))
+            self.log_message('oauth_verifier: %s', oauth_verifier)
+
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b'<html><title>Authorized</title><body><h1 align="center">Authorized</h1></body></html>')
 
 
 def get_quote(symbol, auth):
